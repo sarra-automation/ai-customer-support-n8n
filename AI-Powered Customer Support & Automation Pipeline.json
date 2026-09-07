@@ -1,0 +1,601 @@
+{
+  "name": "AI-Powered Customer Support & Automation Pipeline",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "AI Customer Support Portal",
+        "formDescription": "Please enter your message or inquiry below",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Customer Email",
+              "fieldType": "email"
+            },
+            {
+              "fieldLabel": "Customer Name"
+            },
+            {
+              "fieldLabel": "Customer Message"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.6,
+      "position": [
+        -816,
+        -160
+      ],
+      "id": "32e80799-7620-4963-b323-ac3a489c03df",
+      "name": "Receive Customer Request",
+      "webhookId": "a79ade06-35ed-49d9-9f3a-630a3797cf42"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "e7a52c2c-dddb-49c2-8b36-ac2ea2b1e74c",
+              "leftValue": "={{ $json['Customer Message'] }}",
+              "rightValue": "HIGH",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "7aebe986-b4ae-44dd-86fc-59dd6c938a39",
+              "leftValue": "رسالة خطء",
+              "rightValue": "NORMAL",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -672,
+        -160
+      ],
+      "id": "b53303b9-54d8-4b60-8cf8-5db04a26ae16",
+      "name": "Check Request"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-3-flash-preview",
+          "mode": "list",
+          "cachedResultName": "models/gemini-3-flash-preview"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=You are an AI Customer Support Specialist. Analyze the following customer message and provide a response in JSON format only.\n\nCustomer Name: {{ $json[\"Customer Name\"] }}\nCustomer Email: {{ $json[\"Customer Email\"] }}\nCustomer Message: {{ $json[\"Customer Message\"] }}\n\nInstructions:\n1. Classify the priority of the issue as either \"HIGH\" (for urgent complaints, billing errors, system down) or \"NORMAL\" (for general questions, working hours, pricing).\n2. Write a polite and professional response addressing the customer's query.\n\nOutput format (JSON only):\n{\n  \"priority\": \"HIGH\" or \"NORMAL\",\n  \"sentiment\": \"Positive\" or \"Negative\" or \"Neutral\",\n  \"reply_message\": \"Your generated reply to the customer\"\n}"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.2,
+      "position": [
+        -512,
+        -144
+      ],
+      "id": "d8521841-6689-4547-b5aa-578bb9bda758",
+      "name": "AI Customer Support",
+      "retryOnFail": true,
+      "waitBetweenTries": 2000,
+      "credentials": {
+        "googlePalmApi": {
+          "id": "TRwgLf9JpWNdES8A",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const rawText = $input.first().json.content.parts[0].text;\nconst cleanText = rawText.replace(/```json|```/g, '').trim();\nreturn JSON.parse(cleanText);"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -240,
+        -144
+      ],
+      "id": "d318333d-4930-4c04-88e8-62e1e43296b3",
+      "name": "Parse AI Response"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.priority }}",
+                    "rightValue": "HIGH",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "fbfc81fe-c847-43f8-9470-0093adab24dc"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "902db30d-77c2-405c-88aa-e41df5d57112",
+                    "leftValue": "={{ $json.priority }}",
+                    "rightValue": "NORMAL",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -80,
+        -144
+      ],
+      "id": "62d6adfa-7e45-431b-911c-12eeac2ad76c",
+      "name": "Priority Router"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1XQfDd7xTJNFIKl1eBGy5WGwscmzUBz6YPCgF_Fx222w",
+          "mode": "list",
+          "cachedResultName": "Customer Support Escalations",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1XQfDd7xTJNFIKl1eBGy5WGwscmzUBz6YPCgF_Fx222w/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Feuille 1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1XQfDd7xTJNFIKl1eBGy5WGwscmzUBz6YPCgF_Fx222w/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "customer email",
+              "lookupValue": "={{ $('Receive Customer Request').item.json['Customer Email'] }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        80,
+        -160
+      ],
+      "id": "cba8f880-ff90-4a7f-8284-e6bd722ac387",
+      "name": "Find Customer",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "pYGXo3xRfU3PUyeR",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "913cc74d-f3cf-454b-9ead-771cbf0ab36c",
+              "leftValue": "={{ $json[\"customer email\"] }}",
+              "rightValue": "is not empty",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        224,
+        -160
+      ],
+      "id": "18a2e08a-b3a4-47b1-9d99-cd42759da101",
+      "name": "Duplicate Check"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1XQfDd7xTJNFIKl1eBGy5WGwscmzUBz6YPCgF_Fx222w",
+          "mode": "list",
+          "cachedResultName": "Customer Support Escalations",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1XQfDd7xTJNFIKl1eBGy5WGwscmzUBz6YPCgF_Fx222w/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Feuille 1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1XQfDd7xTJNFIKl1eBGy5WGwscmzUBz6YPCgF_Fx222w/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "customer email": "={{ $('Find Customer').item.json['customer email'] }}",
+            "customer name": "={{ $('Find Customer').item.json['customer name'] }}",
+            "customer message ": "={{ $('Find Customer').item.json['customer message '] }}",
+            "priority": "={{ $('Find Customer').item.json.priority }}"
+          },
+          "matchingColumns": [
+            "customer email"
+          ],
+          "schema": [
+            {
+              "id": "customer name",
+              "displayName": "customer name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "customer email",
+              "displayName": "customer email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "customer message ",
+              "displayName": "customer message ",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "priority",
+              "displayName": "priority",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        416,
+        -192
+      ],
+      "id": "ffca24b9-015e-434c-bd0a-538a9a5d4a1f",
+      "name": "Update Existing Customer",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "pYGXo3xRfU3PUyeR",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "https://docs.google.com/spreadsheets/d/1XQfDd7xTJNFIKl1eBGy5WGwscmzUBz6YPCgF_Fx222w/edit?gid=0#gid=0",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Feuille 1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1XQfDd7xTJNFIKl1eBGy5WGwscmzUBz6YPCgF_Fx222w/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "customer email": "={{ $('Receive Customer Request').item.json['Customer Email'] }}",
+            "customer name": "={{ $('Receive Customer Request').item.json['Customer Name'] }}",
+            "customer message ": "={{ $('Receive Customer Request').item.json['Customer Message'] }}",
+            "priority": "={{ $('Parse AI Response').item.json.priority }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "customer name",
+              "displayName": "customer name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "customer email",
+              "displayName": "customer email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "customer message ",
+              "displayName": "customer message ",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "priority",
+              "displayName": "priority",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        416,
+        -16
+      ],
+      "id": "b434c594-10e1-4306-b457-0e01a2a31976",
+      "name": "Create New Customer",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "pYGXo3xRfU3PUyeR",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Receive Customer Request').item.json['Customer Email'] }}",
+        "subject": "Your Inquiry - Support Team",
+        "message": "={{ $('Parse AI Response').item.json.reply_message }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        640,
+        -144
+      ],
+      "id": "6e35b17e-7e71-4b6e-b7c3-095de17af36f",
+      "name": "Send Customer Reply",
+      "webhookId": "569ff5a4-e3b6-4600-a665-e4fe8bacc2ba",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "tLtOXrDqpNxNDQQM",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Receive Customer Request": {
+      "main": [
+        [
+          {
+            "node": "Check Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Request": {
+      "main": [
+        [
+          {
+            "node": "AI Customer Support",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Customer Support",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Customer Support": {
+      "main": [
+        [
+          {
+            "node": "Parse AI Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse AI Response": {
+      "main": [
+        [
+          {
+            "node": "Priority Router",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Priority Router": {
+      "main": [
+        [
+          {
+            "node": "Find Customer",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Find Customer": {
+      "main": [
+        [
+          {
+            "node": "Duplicate Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Duplicate Check": {
+      "main": [
+        [
+          {
+            "node": "Update Existing Customer",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create New Customer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Existing Customer": {
+      "main": [
+        [
+          {
+            "node": "Send Customer Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create New Customer": {
+      "main": [
+        [
+          {
+            "node": "Send Customer Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "errorWorkflow": "ZG5fRHo7VxVbM0Of",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "a1957ba0-eee9-431a-80d1-830f30bec42e",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f6303bd2cf2ca84f819517369e0420d80e0e7f78d64c195f322f1afbb5cee778"
+  },
+  "nodeGroups": [],
+  "id": "z09aOO77O0gRrA0B",
+  "tags": []
+}
