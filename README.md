@@ -1,5 +1,5 @@
 # AI-Powered Customer Support & Automation Pipeline
-
+![Customer Support Workflow](customer-support-workflow.png)
 An automated, production-ready customer support pipeline built using *n8n*, *Docker*, *Google Gemini API*, and *Google Sheets*, featuring secure environment variables and automated error monitoring via Gmail.
 
 ## 🚀 Overview
